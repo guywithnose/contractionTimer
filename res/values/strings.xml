@@ -8,5 +8,9 @@
     <string name="stop">Stop</string>
     <string name="averageLast5">Average (Last 5)</string>
     <string name="current">Current</string>
+    <string name="restPeriod">Rest</string>
+    <string name="startToStart">S - S</string>
+    <string name="NA">N/A</string>
+    <string name="duration">Duration</string>
 
 </resources>

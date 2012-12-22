@@ -1,12 +1,10 @@
 /*
- * File:         ContractionTimer.java
- * Author:       Robert Bittle <guywithnose@gmail.com>
+ * File: ContractionTimer.java Author: Robert Bittle <guywithnose@gmail.com>
  */
 package com.pregnancy.contractiontimer;
 
+import java.util.Calendar;
 import java.util.GregorianCalendar;
-import java.util.HashMap;
-import java.util.Map;
 
 import android.os.Bundle;
 import android.app.Activity;
@@ -16,21 +14,24 @@ import android.view.Menu;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.widget.BaseAdapter;
 import android.widget.Button;
+import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 
 public class ContractionTimer extends Activity
 {
-  private static final long REMINDERDELAY = 5000;
+  private static final long REMINDERDELAY = 15000;
 
   SharedPreferences contractionData;
   SurfaceView timeGraph;
   ListView contractionList;
   Button startStopButton;
   TextView reminders;
-  Map<Long, Long> contractionTimes = new HashMap<Long, Long>();
-  Long lastStart;
+  public Long lastStart = 0L;
+  BaseAdapter adapter;
+  TextView currentTime;
 
   @Override
   protected void onCreate(Bundle savedInstanceState)
@@ -40,9 +41,14 @@ public class ContractionTimer extends Activity
 
     contractionList = (ListView) findViewById(R.id.contractionList);
     reminders = (TextView) findViewById(R.id.reminders);
+    currentTime = (TextView) findViewById(R.id.CurrentTime);
     startStopButton = (Button) findViewById(R.id.startStopButton);
     timeGraph = (SurfaceView) findViewById(R.id.timeGraph);
     contractionData = getSharedPreferences("Contractions", MODE_PRIVATE);
+
+    adapter = new ContractionListAdapter(this, contractionData);
+
+    contractionList.setAdapter(adapter);
 
     updateReminder();
     new Thread(new reminderUpdater()).start();
@@ -59,11 +65,13 @@ public class ContractionTimer extends Activity
         {
           startStopButton.setText(getString(R.string.stop));
           lastStart = now;
+          new Thread(new currentUpdater()).start();
+          adapter.notifyDataSetChanged();
         } else
         {
           startStopButton.setText(getString(R.string.start));
-          contractionTimes.put(lastStart, now);
           contractionEditor.putLong(lastStart.toString(), now);
+          lastStart = 0L;
           contractionEditor.commit();
         }
       }
@@ -84,6 +92,53 @@ public class ContractionTimer extends Activity
     return true;
   }
 
+  /**
+   * Format time.
+   * 
+   * @param time
+   *          the time
+   * @return the string
+   */
+  public static String formatDuration(Long time)
+  {
+    Long seconds = time / 1000;
+    Long hours = seconds / 3600;
+    Long minutes = (seconds % 3600) / 60;
+    seconds = seconds % 60;
+    String duration = "";
+    if (hours > 0)
+    {
+      duration += hours + "h ";
+    }
+    if (minutes > 0)
+    {
+      duration += minutes + "m ";
+    }
+    if (seconds > 0)
+    {
+      duration += seconds + "s";
+    }
+    return duration;
+  }
+
+  /**
+   * Format time.
+   * 
+   * @param time
+   *          the time
+   * @return the string
+   */
+  public static String formatTime(Long time)
+  {
+    GregorianCalendar cal = new GregorianCalendar();
+    cal.setTimeInMillis(time);
+    return cal.get(Calendar.HOUR) + ":" + cal.get(Calendar.MINUTE) + ":"
+        + cal.get(Calendar.SECOND);
+  }
+
+  /**
+   * The Class reminderUpdater.
+   */
   private class reminderUpdater implements Runnable
   {
     /**
@@ -120,6 +175,57 @@ public class ContractionTimer extends Activity
           e.printStackTrace();
         }
       }
+    }
+  }
+
+  /**
+   * The Class currentUpdater.
+   */
+  private class currentUpdater implements Runnable
+  {
+    /**
+     * Instantiates a new reminder updater.
+     */
+    public currentUpdater()
+    {
+      // Default constructor
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see java.lang.Runnable#run()
+     */
+    @Override
+    public synchronized void run()
+    {
+      while (lastStart != 0)
+      {
+        try
+        {
+          wait(500);
+          runOnUiThread(new Runnable()
+          {
+            @Override
+            public void run()
+            {
+              Long now = GregorianCalendar.getInstance().getTimeInMillis();
+              currentTime.setText(formatDuration(now - lastStart));
+            }
+          });
+        } catch (InterruptedException e)
+        {
+          e.printStackTrace();
+        }
+      }
+      runOnUiThread(new Runnable()
+      {
+        @Override
+        public void run()
+        {
+          currentTime.setText("");
+        }
+      });
     }
   }
 }
