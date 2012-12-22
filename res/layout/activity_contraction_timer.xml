@@ -49,65 +49,13 @@
                 android:layout_alignParentTop="true"
                 android:text="@string/start" />
 
-            <TableLayout
-                android:id="@+id/statistics"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:layout_alignParentBottom="true"
-                android:layout_alignParentLeft="true"
-                android:layout_alignParentRight="true"
-                android:layout_below="@id/startStopButton"
-                android:layout_marginRight="5dp">
+            <ListView
+                android:id="@+id/statsAndTimers"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/startStopButton" >
 
-                <TableRow
-                    android:id="@+id/TableRow03"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" >
-
-                    <TextView
-                        android:id="@+id/CurrentTimeLabel"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_weight=".5"
-                        android:text="@string/current"
-                        android:textAppearance="?android:attr/textAppearanceMedium" />
-
-                    <TextView
-                        android:id="@+id/CurrentTime"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="right"
-                        android:layout_weight=".5"
-                        android:gravity="right"
-                        android:text="0:00"
-                        android:textAppearance="?android:attr/textAppearanceMedium" />
-                </TableRow>
-
-                <TableRow
-                    android:id="@+id/tableRow1"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" >
-
-                    <TextView
-                        android:id="@+id/last5Label"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_weight=".5"
-                        android:text="@string/averageLast5"
-                        android:textAppearance="?android:attr/textAppearanceMedium" />
-
-                    <TextView
-                        android:id="@+id/averageLast5"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="right"
-                        android:layout_weight=".5"
-                        android:gravity="right"
-                        android:text="50 sec"
-                        android:textAppearance="?android:attr/textAppearanceMedium" />
-
-                </TableRow>
-            </TableLayout>
+            </ListView>
 
         </RelativeLayout>
     </LinearLayout>
