@@ -1,8 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     
-    <string name="reminderTurnSides">Make sure mom changes sides every 60 min.</string>
+    <string name="reminderTurnSides">Make sure mom CHANGES SIDES every 60 min.</string>
+    <string name="reminderHydration">Make sure mom stays HYDRATED.</string>
+    <string name="reminderComfort">Make sure mom stays COMFORTABLE.</string>
+    <string name="reminderRelax">Make sure mom stays RELAXED.</string>
+    <string name="reminderBathroom">Make sure mom goes to the BATHROOM at lease every 30 min.</string>
+    <string name="reminderBreathing">Make sure mom maintains good ABDOMINAL breathing.</string>
+    <string name="reminderFood">Make sure mom gets soft/brothy food if needed.</string>
+    <string name="reminderEncourage">Remember to ENCOURAGE mom.</string>
     <string-array name="reminders">
         <item >@string/reminderTurnSides</item>
+        <item >@string/reminderHydration</item>
+        <item >@string/reminderComfort</item>
+        <item >@string/reminderRelax</item>
+        <item >@string/reminderBathroom</item>
+        <item >@string/reminderBreathing</item>
+        <item >@string/reminderFood</item>
+        <item >@string/reminderEncourage</item>e
     </string-array>
 </resources>

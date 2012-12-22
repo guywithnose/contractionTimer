@@ -28,7 +28,7 @@
         android:layout_below="@id/clock" >
 
         <ListView
-            android:id="@+id/contractionData"
+            android:id="@+id/contractionList"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight=".5" >
@@ -57,8 +57,7 @@
                 android:layout_alignParentLeft="true"
                 android:layout_alignParentRight="true"
                 android:layout_below="@id/startStopButton"
-                android:layout_marginRight="5dp"
-                android:layout_weight=".5" >
+                android:layout_marginRight="5dp">
 
                 <TableRow
                     android:id="@+id/TableRow03"
