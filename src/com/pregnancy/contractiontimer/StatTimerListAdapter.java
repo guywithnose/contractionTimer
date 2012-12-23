@@ -128,7 +128,7 @@ public class StatTimerListAdapter implements ListAdapter
       @Override
       public void onClick(View v)
       {
-        View parentView = (View) v.getParent().getParent();
+        View parentView = (View) v.getParent();
         TextView titleText = (TextView) parentView.findViewById(R.id.title);
         Editor timerEditor = timerData.edit();
         timerEditor.remove(titleText.getText().toString());
@@ -141,7 +141,7 @@ public class StatTimerListAdapter implements ListAdapter
       @Override
       public void onClick(View v)
       {
-        View parentView = (View) v.getParent().getParent();
+        View parentView = (View) v.getParent();
         TextView titleText = (TextView) parentView.findViewById(R.id.title);
         Editor timerEditor = timerData.edit();
         Long now = GregorianCalendar.getInstance().getTimeInMillis();
@@ -424,6 +424,7 @@ public class StatTimerListAdapter implements ListAdapter
       timeLeft.setText(ContractionTimer.formatDuration(timerStart + alertDuration - now));
     } catch (JSONException e)
     {
+      timerData.edit().remove(timerOrder.get(position)).commit();
       e.printStackTrace();
     }
 

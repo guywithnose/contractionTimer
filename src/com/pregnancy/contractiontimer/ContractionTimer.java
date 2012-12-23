@@ -3,17 +3,27 @@
  */
 package com.pregnancy.contractiontimer;
 
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import android.os.Bundle;
 import android.app.Activity;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.Rect;
+import android.graphics.RectF;
 import android.text.Html;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MenuItem.OnMenuItemClickListener;
+import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -22,7 +32,8 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.TextView.BufferType;
 
-public class ContractionTimer extends Activity
+public class ContractionTimer extends Activity implements
+    SurfaceHolder.Callback2
 {
   private static final long REMINDERDELAY = 15000;
 
@@ -36,6 +47,8 @@ public class ContractionTimer extends Activity
   ContractionListAdapter contractionAdapter;
 
   private StatTimerListAdapter statTimerAdapter;
+
+  SurfaceHolder surfaceHolder;
 
   @Override
   protected void onCreate(Bundle savedInstanceState)
@@ -55,6 +68,10 @@ public class ContractionTimer extends Activity
 
     contractionList.setAdapter(contractionAdapter);
     statsAndTimers.setAdapter(statTimerAdapter);
+
+    surfaceHolder = timeGraph.getHolder();
+    surfaceHolder.addCallback(this);
+    timeGraph.setWillNotDraw(false);
 
     updateReminder();
     new Thread(new reminderUpdater()).start();
@@ -78,6 +95,7 @@ public class ContractionTimer extends Activity
           contractionEditor.putLong(lastStart.toString(), now);
           lastStart = 0L;
           contractionEditor.commit();
+          surfaceRedrawNeeded(surfaceHolder);
         }
       }
     });
@@ -108,6 +126,7 @@ public class ContractionTimer extends Activity
               contractionEditor.remove(key);
             }
             contractionEditor.commit();
+            surfaceRedrawNeeded(surfaceHolder);
             return false;
           }
         });
@@ -212,5 +231,130 @@ public class ContractionTimer extends Activity
   {
     super.onResume();
     statTimerAdapter.resume();
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see
+   * android.view.SurfaceHolder.Callback#surfaceChanged(android.view.SurfaceHolder
+   * , int, int, int)
+   */
+  @SuppressWarnings("unused")
+  @Override
+  public void surfaceChanged(SurfaceHolder holder, int format, int width,
+      int height)
+  {
+    tryDrawing(holder);
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see
+   * android.view.SurfaceHolder.Callback#surfaceCreated(android.view.SurfaceHolder
+   * )
+   */
+  @Override
+  public void surfaceCreated(SurfaceHolder holder)
+  {
+    tryDrawing(holder);
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see
+   * android.view.SurfaceHolder.Callback#surfaceDestroyed(android.view.SurfaceHolder
+   * )
+   */
+  @Override
+  public void surfaceDestroyed(SurfaceHolder holder)
+  {
+    // Do Nothing
+  }
+
+  private void tryDrawing(SurfaceHolder holder)
+  {
+    Canvas canvas = holder.lockCanvas();
+    if (canvas == null)
+    {
+    } else
+    {
+      drawMyStuff(canvas);
+      holder.unlockCanvasAndPost(canvas);
+    }
+  }
+
+  private void drawMyStuff(final Canvas canvas)
+  {
+    canvas.drawRGB(255, 255, 255);
+
+    Paint paint = new Paint();
+    //paint.setDither(true);
+    paint.setColor(0xFF000000);
+    paint.setStyle(Paint.Style.STROKE);
+    //paint.setStrokeJoin(Paint.Join.ROUND);
+    //paint.setStrokeCap(Paint.Cap.ROUND);
+    paint.setStrokeWidth(3);
+
+    Map<String, Long> allData = (Map<String, Long>) contractionData.getAll();
+    if (allData.size() == 0)
+    {
+      return;
+    }
+    Map<Long, Long> data = new HashMap<Long, Long>();
+    for (String key : allData.keySet())
+    {
+      data.put(Long.valueOf(key), allData.get(key));
+    }
+    List<Long> sortedData = new ArrayList<Long>(data.keySet());
+    Collections.sort(sortedData);
+    Collections.reverse(sortedData);
+
+    if (sortedData.size() > 20)
+    {
+      sortedData = sortedData.subList(0, 20);
+    }
+
+    Long now = GregorianCalendar.getInstance().getTimeInMillis();
+
+    long msPerPixel = (now - sortedData.get(sortedData.size() - 1))
+        / canvas.getWidth();
+
+    for (int i = 0; i < sortedData.size(); i++)
+    {
+      Long start = sortedData.get(i);
+      Long stop = data.get(start);
+      float startX = canvas.getWidth() - ((now - start) / msPerPixel);
+      float stopX = canvas.getWidth() - ((now - stop) / msPerPixel);
+      float onY = canvas.getHeight() * 1 / 3;
+      float offY = canvas.getHeight() * 2 / 3;
+      //TODO fix the arcs
+      //canvas.drawLine(startX, onY, stopX, onY, paint);
+      //canvas.drawLine(stopX, onY, stopX, offY, paint);
+      canvas.drawArc(new RectF(startX, onY, stopX, canvas.getHeight()), 180, 180, false, paint);
+      if (i < sortedData.size() - 1)
+      {
+        Long laststart = sortedData.get(i + 1);
+        Long laststop = data.get(laststart);
+        startX = canvas.getWidth() - ((now - laststop) / msPerPixel);
+        stopX = canvas.getWidth() - ((now - start) / msPerPixel);
+        canvas.drawLine(startX, offY, stopX, offY, paint);
+        //canvas.drawLine(stopX, offY, stopX, onY, paint);
+      }
+    }
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see android.view.SurfaceHolder.Callback2#surfaceRedrawNeeded(android.view.
+   * SurfaceHolder)
+   */
+  @Override
+  public void surfaceRedrawNeeded(SurfaceHolder holder)
+  {
+    tryDrawing(holder);
   }
 }
