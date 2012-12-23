@@ -13,5 +13,8 @@
     <string name="duration">Duration</string>
     <string name="delete">Delete</string>
     <string name="reset">Reset</string>
+    <string name="timerName">Timer Name</string>
+    <string name="timerDuration">Timer Duration (min)</string>
+    <string name="title">Title</string>
 
 </resources>

@@ -71,7 +71,7 @@
         android:gravity="center"
         android:text="@string/reminderTurnSides"
         android:textAppearance="?android:attr/textAppearanceLarge"
-        android:textColor="#FF0000"
+        android:textColor="#000000"
         android:textStyle="bold" />
 
 </RelativeLayout>

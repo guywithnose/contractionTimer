@@ -7,43 +7,80 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
+import android.database.DataSetObserver;
+import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.ViewGroup;
-import android.widget.BaseAdapter;
 import android.widget.Button;
+import android.widget.ListAdapter;
 import android.widget.TextView;
 
+// TODO: Auto-generated Javadoc
 /**
  * The Class StatTimerListAdapter.
  */
-public class StatTimerListAdapter extends BaseAdapter
+public class StatTimerListAdapter implements ListAdapter
 {
 
+  /** The Constant MILISECONDSINAMINUTE. */
+  public static final Long MILISECONDSINAMINUTE = 60000L;
+
+  /** The Constant SNOOZE. */
+  private static final Long SNOOZE = 300000L;
+
   /** The timers. */
-  Map<String, Long> timers;
+  Map<String, String> timers;
 
   /** The timer order. */
   List<String> timerOrder;
 
   /** The change listener. */
-  OnSharedPreferenceChangeListener changeListener;
+  OnSharedPreferenceChangeListener contractionListener;
+
+  /** The change listener. */
+  OnSharedPreferenceChangeListener timerListener;
 
   /** The context. */
   ContractionTimer context;
 
   /** The timer data. */
-  private SharedPreferences timerData;
+  SharedPreferences timerData;
 
+  /** The reset click. */
+  OnClickListener resetClick;
+
+  /** The delete click. */
+  OnClickListener deleteClick;
+
+  /** The duration. */
   StatData duration = new StatData("Duration");
+
+  /** The start to start. */
   StatData startToStart = new StatData("Start To Start");
+
+  /** The rest. */
   StatData rest = new StatData("Rest");
+
+  /** The observers. */
+  List<DataSetObserver> observers = new LinkedList<DataSetObserver>();
+
+  /** The new timer click. */
+  private OnClickListener newTimerClick;
+
+  boolean paused = false;
 
   /**
    * Instantiates a new stat timer list adapter.
@@ -59,9 +96,8 @@ public class StatTimerListAdapter extends BaseAdapter
     context = parent;
     timerData = parent.getSharedPreferences("Timers", Context.MODE_PRIVATE);
     updateTimers();
-    changeListener = new OnSharedPreferenceChangeListener()
+    contractionListener = new OnSharedPreferenceChangeListener()
     {
-
       @Override
       public void onSharedPreferenceChanged(
           SharedPreferences sharedPreferences,
@@ -70,10 +106,70 @@ public class StatTimerListAdapter extends BaseAdapter
         updateStats(sharedPreferences);
       }
     };
-    contractionData.registerOnSharedPreferenceChangeListener(changeListener);
+    timerListener = new OnSharedPreferenceChangeListener()
+    {
+      @Override
+      @SuppressWarnings("unused")
+      public void onSharedPreferenceChanged(
+          SharedPreferences sharedPreferences, String key)
+      {
+        updateTimers();
+      }
+    };
+    contractionData
+        .registerOnSharedPreferenceChangeListener(contractionListener);
+    timerData.registerOnSharedPreferenceChangeListener(timerListener);
     updateStats(contractionData);
-    
-    new Thread(new updateTimers()).start();
+
+    new Thread(new UpdateTimers()).start();
+
+    deleteClick = new OnClickListener()
+    {
+      @Override
+      public void onClick(View v)
+      {
+        View parentView = (View) v.getParent().getParent();
+        TextView titleText = (TextView) parentView.findViewById(R.id.title);
+        Editor timerEditor = timerData.edit();
+        timerEditor.remove(titleText.getText().toString());
+        timerEditor.commit();
+      }
+    };
+
+    resetClick = new OnClickListener()
+    {
+      @Override
+      public void onClick(View v)
+      {
+        View parentView = (View) v.getParent().getParent();
+        TextView titleText = (TextView) parentView.findViewById(R.id.title);
+        Editor timerEditor = timerData.edit();
+        Long now = GregorianCalendar.getInstance().getTimeInMillis();
+        try
+        {
+          JSONObject timerInfo = new JSONObject(timerData.getString(titleText
+              .getText().toString(), "{}"));
+          timerInfo.put("start", now);
+          timerEditor.putString(titleText.getText().toString(),
+              timerInfo.toString());
+          timerEditor.commit();
+        } catch (JSONException e)
+        {
+          e.printStackTrace();
+        }
+      }
+    };
+
+    newTimerClick = new OnClickListener()
+    {
+      @SuppressWarnings("unused")
+      @Override
+      public void onClick(View v)
+      {
+        AddTimerDialog newFragment = new AddTimerDialog();
+        newFragment.show(context.getFragmentManager(), "Add Timer");
+      }
+    };
   }
 
   /**
@@ -82,7 +178,7 @@ public class StatTimerListAdapter extends BaseAdapter
   @SuppressWarnings("unchecked")
   void updateTimers()
   {
-    timers = (Map<String, Long>) timerData.getAll();
+    timers = (Map<String, String>) timerData.getAll();
     timerOrder = new ArrayList<String>(timers.keySet());
     Collections.sort(timerOrder);
     notifyDataSetChanged();
@@ -127,6 +223,7 @@ public class StatTimerListAdapter extends BaseAdapter
       }
       duration.add(thisStop - thisStart);
     }
+    notifyDataSetChanged();
   }
 
   /*
@@ -160,7 +257,8 @@ public class StatTimerListAdapter extends BaseAdapter
     } else if (position == 3)
     {
       return "Rest";
-    } else if (position == timerOrder.size() + 4) {
+    } else if (position == timerOrder.size() + 4)
+    {
       return "New";
     }
     return timerOrder.get(position - 4);
@@ -189,35 +287,63 @@ public class StatTimerListAdapter extends BaseAdapter
   {
     if (position == 0)
     {
-      Long now = GregorianCalendar.getInstance().getTimeInMillis();
-      String durationText = "";
-      if (context.lastStart != 0)
-      {
-        durationText = ContractionTimer.formatDuration(now - context.lastStart);
-      }
-
-      return getSimpleView("Current Contraction: " + durationText);
+      View currentContractionView = getSimpleView(getCurrentDurationText(),
+          convertView);
+      currentContractionView.setOnClickListener(null);
+      return currentContractionView;
     } else if (position == 1)
     {
-      return getStatView(duration);
+      return getStatView(duration, convertView);
     } else if (position == 2)
     {
-      return getStatView(startToStart);
+      return getStatView(startToStart, convertView);
     } else if (position == 3)
     {
-      return getStatView(rest);
-    } else if (position == timerOrder.size() + 4) {
-      return getSimpleView("Add a new timer");
+      return getStatView(rest, convertView);
+    } else if (position == timerOrder.size() + 4)
+    {
+      View newTimerView = getSimpleView("Add a new timer", convertView);
+      newTimerView.setOnClickListener(newTimerClick);
+      newTimerView.setMinimumHeight(100);
+      return newTimerView;
     }
-    return getTimerView(position - 4);
+    return getTimerView(position - 4, convertView);
   }
 
-  private View getSimpleView(String text)
+  /**
+   * Get Current duration text.
+   * 
+   * @return the current duration text
+   */
+  String getCurrentDurationText()
   {
-    LayoutInflater inflater = (LayoutInflater) context
-        .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-    View simpleView = inflater.inflate(android.R.layout.simple_list_item_1,
-        null);
+    Long now = GregorianCalendar.getInstance().getTimeInMillis();
+    String durationText = "";
+    if (context.lastStart != 0)
+    {
+      durationText = ContractionTimer.formatDuration(now - context.lastStart);
+    }
+
+    return "Current Contraction: " + durationText;
+  }
+
+  /**
+   * Get Simple view.
+   * 
+   * @param text
+   *          the text
+   * @param simpleView
+   *          the simple view
+   * @return the simple view
+   */
+  private View getSimpleView(String text, View simpleView)
+  {
+    if (simpleView == null)
+    {
+      LayoutInflater inflater = (LayoutInflater) context
+          .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+      simpleView = inflater.inflate(android.R.layout.simple_list_item_1, null);
+    }
 
     TextView textView = (TextView) simpleView.findViewById(android.R.id.text1);
 
@@ -226,11 +352,23 @@ public class StatTimerListAdapter extends BaseAdapter
     return simpleView;
   }
 
-  private View getStatView(StatData statData)
+  /**
+   * Get Stat view.
+   * 
+   * @param statData
+   *          the stat data
+   * @param statView
+   *          the stat view
+   * @return the stat view
+   */
+  private View getStatView(StatData statData, View statView)
   {
-    LayoutInflater inflater = (LayoutInflater) context
-        .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-    View statView = inflater.inflate(R.layout.statlistitem, null);
+    if (statView == null)
+    {
+      LayoutInflater inflater = (LayoutInflater) context
+          .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+      statView = inflater.inflate(R.layout.statlistitem, null);
+    }
 
     TextView title = (TextView) statView.findViewById(R.id.title);
     TextView ave5 = (TextView) statView.findViewById(R.id.ave5);
@@ -247,22 +385,44 @@ public class StatTimerListAdapter extends BaseAdapter
     return statView;
   }
 
-  private View getTimerView(int position)
+  /**
+   * Get Timer view.
+   * 
+   * @param position
+   *          the position
+   * @param timerView
+   *          the timer view
+   * @return the timer view
+   */
+  private View getTimerView(int position, View timerView)
   {
-    LayoutInflater inflater = (LayoutInflater) context
-        .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-    View timerView = inflater.inflate(R.layout.timerlistitem, null);
+    if (timerView == null)
+    {
+      LayoutInflater inflater = (LayoutInflater) context
+          .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+      timerView = inflater.inflate(R.layout.timerlistitem, null);
+      Button reset = (Button) timerView.findViewById(R.id.reset);
+      Button delete = (Button) timerView.findViewById(R.id.delete);
+      delete.setOnClickListener(deleteClick);
+      reset.setOnClickListener(resetClick);
+    }
 
     TextView title = (TextView) timerView.findViewById(R.id.title);
     TextView durationText = (TextView) timerView.findViewById(R.id.duration);
-    Button reset = (Button) timerView.findViewById(R.id.reset);
-    Button delete = (Button) timerView.findViewById(R.id.delete);
 
     Long now = GregorianCalendar.getInstance().getTimeInMillis();
 
-    title.setText(getItem(position));
-    durationText.setText(ContractionTimer.formatDuration(now
-        - timers.get(getItem(position))));
+    title.setText(timerOrder.get(position));
+    try
+    {
+      JSONObject timerInfo = new JSONObject(
+          timers.get(timerOrder.get(position)));
+      Long timerStart = timerInfo.getLong("start");
+      durationText.setText(ContractionTimer.formatDuration(now - timerStart));
+    } catch (JSONException e)
+    {
+      e.printStackTrace();
+    }
 
     return timerView;
   }
@@ -270,12 +430,12 @@ public class StatTimerListAdapter extends BaseAdapter
   /**
    * The Class currentUpdater.
    */
-  private class updateTimers implements Runnable
+  private class UpdateTimers implements Runnable
   {
     /**
      * Instantiates a new reminder updater.
      */
-    public updateTimers()
+    public UpdateTimers()
     {
       // Default constructor
     }
@@ -290,23 +450,79 @@ public class StatTimerListAdapter extends BaseAdapter
     {
       while (true)
       {
-        try
+        if (!paused)
         {
-          wait(500);
-          context.runOnUiThread(new Runnable()
+          try
           {
-            @Override
-            public void run()
+            wait(500);
+            checkTimers();
+            context.runOnUiThread(new Runnable()
             {
-              //Long now = GregorianCalendar.getInstance().getTimeInMillis();
-              notifyDataSetChanged();
-            }
-          });
-        } catch (InterruptedException e)
-        {
-          e.printStackTrace();
+              @Override
+              public void run()
+              {
+                notifyDataSetChanged();
+              }
+            });
+          } catch (InterruptedException e)
+          {
+            e.printStackTrace();
+          }
         }
       }
+    }
+  }
+
+  /**
+   * Notify data set changed.
+   */
+  public void notifyDataSetChanged()
+  {
+    for (DataSetObserver observer : observers)
+    {
+      observer.onChanged();
+    }
+  }
+
+  /**
+   * Check timers.
+   */
+  public void checkTimers()
+  {
+    for (String key : timers.keySet())
+    {
+      try
+      {
+        JSONObject timerInfo = new JSONObject(timers.get(key));
+        Long start = timerInfo.getLong("start");
+        Integer alertTime = timerInfo.getInt("alertTime");
+        Long now = GregorianCalendar.getInstance().getTimeInMillis();
+        Long alertDuration = (MILISECONDSINAMINUTE * alertTime);
+        if (now - start >= alertDuration)
+        {
+          Long newStart = start
+              + Math.min(alertDuration, SNOOZE);
+          // If we've been away a while we don't need a bunch of notices.
+          if (newStart + alertDuration < now)
+          {
+            newStart = now;
+            // Next snooze should be no more then 5 min away.
+            if (alertTime > 5)
+            {
+              newStart = now - MILISECONDSINAMINUTE * 5;
+            }
+          }
+          timerInfo.put("start", newStart);
+          Editor timerEditor = timerData.edit();
+          timerEditor.putString(key, timerInfo.toString());
+          timerEditor.commit();
+          context.runOnUiThread(new showTimerDialog(key));
+        }
+      } catch (JSONException e)
+      {
+        e.printStackTrace();
+      }
+
     }
   }
 
@@ -317,8 +533,16 @@ public class StatTimerListAdapter extends BaseAdapter
   {
     /** The all data. */
     private List<Long> allData;
+
+    /** The title. */
     public String title;
 
+    /**
+     * Instantiates a new stat data.
+     * 
+     * @param name
+     *          the name
+     */
     public StatData(String name)
     {
       title = name;
@@ -373,5 +597,154 @@ public class StatTimerListAdapter extends BaseAdapter
 
       return total / numData;
     }
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see android.widget.Adapter#getItemViewType(int)
+   */
+  @Override
+  public int getItemViewType(int position)
+  {
+    if (position == 0)
+    {
+      return 0;
+    } else if (position == 1)
+    {
+      return 1;
+    } else if (position == 2)
+    {
+      return 1;
+    } else if (position == 3)
+    {
+      return 1;
+    } else if (position == timerOrder.size() + 4)
+    {
+      return 0;
+    }
+    return 2;
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see android.widget.Adapter#getViewTypeCount()
+   */
+  @Override
+  public int getViewTypeCount()
+  {
+    return 3;
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see android.widget.Adapter#hasStableIds()
+   */
+  @Override
+  public boolean hasStableIds()
+  {
+    return false;
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see android.widget.Adapter#isEmpty()
+   */
+  @Override
+  public boolean isEmpty()
+  {
+    return getCount() == 0;
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see
+   * android.widget.Adapter#registerDataSetObserver(android.database.DataSetObserver
+   * )
+   */
+  @Override
+  public void registerDataSetObserver(DataSetObserver observer)
+  {
+    if (!observers.contains(observer))
+    {
+      observers.add(observer);
+    }
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see android.widget.Adapter#unregisterDataSetObserver(android.database.
+   * DataSetObserver)
+   */
+  @Override
+  public void unregisterDataSetObserver(DataSetObserver observer)
+  {
+    observers.remove(observer);
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see android.widget.ListAdapter#areAllItemsEnabled()
+   */
+  @Override
+  public boolean areAllItemsEnabled()
+  {
+    return true;
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see android.widget.ListAdapter#isEnabled(int)
+   */
+  @Override
+  public boolean isEnabled(@SuppressWarnings("unused") int position)
+  {
+    return true;
+  }
+
+  /**
+   * The Class showTimerDialog.
+   */
+  private class showTimerDialog implements Runnable
+  {
+    String timerName;
+
+    public showTimerDialog(String theTimerName)
+    {
+      timerName = theTimerName;
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see java.lang.Runnable#run()
+     */
+    @Override
+    public void run()
+    {
+      Bundle timerArgs = new Bundle();
+      timerArgs.putString("timerName", timerName);
+      TimerAlertDialog timerAlertDialog = new TimerAlertDialog();
+      timerAlertDialog.setArguments(timerArgs);
+      timerAlertDialog.initialize();
+      timerAlertDialog.show(context.getFragmentManager(), timerName);
+    }
+  }
+
+  public void pause()
+  {
+    paused = true;
+  }
+
+  public void resume()
+  {
+    paused = false;
   }
 }

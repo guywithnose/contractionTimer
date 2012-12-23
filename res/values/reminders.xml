@@ -1,22 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    
-    <string name="reminderTurnSides">Make sure mom CHANGES SIDES every 60 min.</string>
-    <string name="reminderHydration">Make sure mom stays HYDRATED.</string>
-    <string name="reminderComfort">Make sure mom stays COMFORTABLE.</string>
-    <string name="reminderRelax">Make sure mom stays RELAXED.</string>
-    <string name="reminderBathroom">Make sure mom goes to the BATHROOM at lease every 30 min.</string>
-    <string name="reminderBreathing">Make sure mom maintains good ABDOMINAL breathing.</string>
-    <string name="reminderFood">Make sure mom gets soft/brothy food if needed.</string>
-    <string name="reminderEncourage">Remember to ENCOURAGE mom.</string>
+
+    <string name="reminderTurnSides">Make sure mom &lt;font color="red"&gt;CHANGES SIDES&lt;/font&gt; every 60 min.</string>
+    <string name="reminderHydration">Make sure mom stays &lt;font color="red"&gt;HYDRATED&lt;/font&gt;.</string>
+    <string name="reminderComfort">Make sure mom stays &lt;font color="red"&gt;COMFORTABLE&lt;/font&gt;.</string>
+    <string name="reminderRelax">Make sure mom stays &lt;font color="red"&gt;RELAXED&lt;/font&gt;.</string>
+    <string name="reminderBathroom">Make sure mom goes to the &lt;font color="red"&gt;BATHROOM&lt;/font&gt; at lease every 30 min.</string>
+    <string name="reminderBreathing">Make sure mom maintains good &lt;font color="red"&gt;ABDOMINAL&lt;/font&gt; breathing.</string>
+    <string name="reminderFood">Make sure mom gets soft/brothy &lt;font color="red"&gt;FOOD&lt;/font&gt; if needed.</string>
+    <string name="reminderEncourage">Remember to &lt;font color="red"&gt;ENCOURAGE&lt;/font&gt; mom.</string>
+
     <string-array name="reminders">
-        <item >@string/reminderTurnSides</item>
-        <item >@string/reminderHydration</item>
-        <item >@string/reminderComfort</item>
-        <item >@string/reminderRelax</item>
-        <item >@string/reminderBathroom</item>
-        <item >@string/reminderBreathing</item>
-        <item >@string/reminderFood</item>
-        <item >@string/reminderEncourage</item>e
-    </string-array>
+        <item>@string/reminderTurnSides</item>
+        <item>@string/reminderHydration</item>
+        <item>@string/reminderComfort</item>
+        <item>@string/reminderRelax</item>
+        <item>@string/reminderBathroom</item>
+        <item>@string/reminderBreathing</item>
+        <item>@string/reminderFood</item>
+        <item>@string/reminderEncourage</item>
+e</string-array>
+
 </resources>
