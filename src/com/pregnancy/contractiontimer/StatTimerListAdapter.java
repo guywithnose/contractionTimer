@@ -409,6 +409,7 @@ public class StatTimerListAdapter implements ListAdapter
 
     TextView title = (TextView) timerView.findViewById(R.id.title);
     TextView durationText = (TextView) timerView.findViewById(R.id.duration);
+    TextView timeLeft = (TextView) timerView.findViewById(R.id.timeLeft);
 
     Long now = GregorianCalendar.getInstance().getTimeInMillis();
 
@@ -418,7 +419,9 @@ public class StatTimerListAdapter implements ListAdapter
       JSONObject timerInfo = new JSONObject(
           timers.get(timerOrder.get(position)));
       Long timerStart = timerInfo.getLong("start");
+      Long alertDuration = MILISECONDSINAMINUTE * timerInfo.getInt("alertTime");
       durationText.setText(ContractionTimer.formatDuration(now - timerStart));
+      timeLeft.setText(ContractionTimer.formatDuration(timerStart + alertDuration - now));
     } catch (JSONException e)
     {
       e.printStackTrace();

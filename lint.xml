@@ -4,5 +4,6 @@
         <ignore path="res\layout\contractionlistitem.xml" />
         <ignore path="res\layout\createtimerdialog.xml" />
         <ignore path="res\layout\statlistitem.xml" />
+        <ignore path="res\layout\timerlistitem.xml" />
     </issue>
 </lint>
